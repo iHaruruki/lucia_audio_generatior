@@ -1,18 +1,33 @@
 #ifndef AUDIOGENERATOR_H
 #define AUDIOGENERATOR_H
 
-#include <iostream>
+// C++ 標準ライブラリ
 #include <string>
+#include <mutex>
 
-class AudioGenerator {
+// YARP
+#include <yarp/os/Network.h>
+#include <yarp/os/BufferedPort.h>
+#include <yarp/os/Bottle.h>
+#include <yarp/os/LogStream.h>
+
+class AudioGenerator
+{
 public:
-    std::string text;   // メイン cpp から受け取るための変数
+    AudioGenerator();
+    ~AudioGenerator();
 
-    // `setText()` を追加（メイン cpp からテキストを変更できる）
+    // 再生テキストを設定
     void setText(const std::string& newText);
 
-    // メイン cpp から送られたテキストを使用して音声生成コマンドを送信
+    // 音声生成コマンドを送信
     void audio_generator();
+
+private:
+    static bool networkInitialized;
+    std::string text;
+    yarp::os::BufferedPort<yarp::os::Bottle> port;
+    std::mutex mtx;
 };
 
-#endif
+#endif // AUDIOGENERATOR_H

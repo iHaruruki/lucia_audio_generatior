@@ -11,7 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(YARP REQUIRED)
 
-add_executable(audio_generator_node src/audiogenerator.cpp)
+add_executable(audio_generator_node src/main.cpp src/audiogenerator.cpp)
 ament_target_dependencies(audio_generator_node rclcpp std_msgs YARP)
 
 install(TARGETS

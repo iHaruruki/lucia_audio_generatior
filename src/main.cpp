@@ -4,7 +4,7 @@
 #include <thread>
 #include <chrono>
 
-#include "audioGenerator.h"
+#include "../include/lucia_audio_generator/audiogenerator.hpp"
 #include <yarp/os/Network.h>
 
 int main() {
