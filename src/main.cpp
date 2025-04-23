@@ -1,34 +1,40 @@
 // main.cpp
-#include <iostream>
-#include <vector>
-#include <thread>
-#include <chrono>
+#include <rclcpp/rclcpp.hpp>          // ROS2 の rclcpp
+#include <thread>                     // std::this_thread::sleep_for
+#include <chrono>                     // std::chrono::seconds
+#include "../include/lucia_audio_generator/audiogenerator.hpp"           // AudioGenerator クラス
 
-#include "../include/lucia_audio_generator/audiogenerator.hpp"
-#include <yarp/os/Network.h>
+int main(int argc, char * argv[])
+{
+  //─── ROS 2 ノードの初期化 ───────────────────────────────────
+  rclcpp::init(argc, argv);
+  auto node = rclcpp::Node::make_shared("audio_generator_node");
 
-int main() {
-    // 1) YARP ネットワークを初期化
-    yarp::os::Network::init();
+  //─── AudioGenerator の準備 ─────────────────────────────────
+  AudioGenerator generator;
 
-    AudioGenerator generator;
+  //─── 読み上げたいメッセージリスト ─────────────────────────────
+  const std::vector<std::string> messages = {
+    "こんにちは",                     // 挨拶
+    "バイタルを測定しませんか",      // バイタル測定の呼びかけ
+    "ありがとうございました．"        // 終了メッセージ
+  };
 
-    // 再生したいメッセージをリスト化
-    std::vector<std::string> messages = {
-        "こんにちは",
-        "バイタルを測定しませんか",
-        "ありがとうございました．"
-    };
+  //─── 順番にログを出して音声合成を呼び出し ────────────────────
+  for (const auto & msg : messages) {
+    // 1) ROS2 ログ出力（コメントとして表示）
+    RCLCPP_INFO(node->get_logger(), "AudioGenerator: '%s' を再生します", msg.c_str());
 
-    // 順番に音声生成を呼び出し
-    for (const auto& msg : messages) {
-        generator.setText(msg);
-        generator.audio_generator();
-        // 次の発話まで少し待機（音声合成に時間がかかる場合があります）
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-    }
+    // 2) テキストをセットして音声生成
+    generator.setText(msg);
+    generator.audio_generator();
 
-    // 2) YARP ネットワークを終了
-    yarp::os::Network::fini();
-    return 0;
+    // 3) 次の発話まで少し待機
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+  }
+
+  //─── ノードのシャットダウン ─────────────────────────────────
+  RCLCPP_INFO(node->get_logger(), "AudioGenerator ノードを終了します");
+  rclcpp::shutdown();
+  return 0;
 }
