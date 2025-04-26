@@ -20,16 +20,16 @@ public:
         // YARP ネットワークを一度だけ初期化
         static bool networkInitialized = false;
         if (!networkInitialized) {
-            yarp::os::Network::init();
+            //yarp::os::Network::init();
             networkInitialized = true;
             RCLCPP_INFO(get_logger(), "YARP network initialized");
         }
         // 出力ポートを開いて接続
         port_.open("/test:o");
-        if (!yarp::os::Network::connect("/test:o", "/audioGenerator/gui:i")) {
-            RCLCPP_ERROR(get_logger(), "Failed to connect to /audioGenerator/gui:i");
+        if (!yarp::os::Network::connect("/test:o", "/soundGenerator/command:i")) {
+            RCLCPP_ERROR(get_logger(), "Failed to connect to /soundGenerator/command:i");
         } else {
-            RCLCPP_INFO(get_logger(), "Connected to /audioGenerator/gui:i");
+            RCLCPP_INFO(get_logger(), "Connected to /soundGenerator/command:i");
         }
     }
 
@@ -83,7 +83,7 @@ int main(int argc, char * argv[])
     //─── 各メッセージを順に送信 ────────────────────────
     for (const auto & msg : messages) {
         RCLCPP_INFO(generator->get_logger(),
-                    "AudioGenerator: 再生メッセージ -> '%s'", msg.c_str());
+                    "AudioGenerator: '%s'", msg.c_str());
         generator->setText(msg);
         generator->audio_generator();
         std::this_thread::sleep_for(std::chrono::seconds(2));
