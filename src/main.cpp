@@ -1,8 +1,7 @@
-// main.cpp
-#include <rclcpp/rclcpp.hpp>            // ROS2 コア
-#include <thread>                        // std::this_thread::sleep_for
-#include <chrono>                        // std::chrono::seconds
-#include <vector>                        // std::vector
+#include <rclcpp/rclcpp.hpp>
+#include <thread>
+#include <chrono>
+#include <vector>
 #include <string>
 #include <mutex>
 
