@@ -19,7 +19,7 @@ public:
     }
 
     // YARP ポートを open
-    cmd_port_.open("/tts_bridge/command:o");
+    cmd_port_.open("/vison/sound:o");
     state_port_.open("/tts_bridge/state:i");
 
     // soundGenerator モジュールと接続

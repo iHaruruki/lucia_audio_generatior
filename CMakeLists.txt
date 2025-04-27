@@ -19,6 +19,14 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+add_executable(yarp_port_list_node src/yarp_port_list.cpp)
+ament_target_dependencies(yarp_port_list_node rclcpp YARP)
+
+install(TARGETS
+  yarp_port_list_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
