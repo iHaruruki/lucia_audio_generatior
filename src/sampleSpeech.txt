@@ -1,0 +1,17 @@
+[BINDER]
+size 1 1
+label "group"
+0 GROUP0
+
+[GROUP0]
+size 8 2
+dir_work "/home/robot/opt/robot/tutorial/tutorialAudio/"
+label "wave_file" "speech_text"
+0 "00-genki-desuka.wav" "元気ですか？"
+1 "01-kyouha-nini-shitano.wav" "今日は何したの？"
+2 "02-kyouha-dokoni-itta.wav" "今日はどこに行った？"
+3 "03-sounano.wav" "そうなの"
+4 "04-tanoshi-katta.wav" "楽しかった？"
+5 "05-yokattane.wav" "良かったね"
+6 "06-baibai.wav" "バイバイ"
+7 "07-oyasumi.wav" "おやすみ"
