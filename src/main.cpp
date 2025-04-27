@@ -1,73 +1,65 @@
-// src/tts_bridge_node.cpp
-#include <rclcpp/rclcpp.hpp>
-#include <std_msgs/msg/string.hpp>
-#include <yarp/os/Network.h>
-#include <yarp/os/BufferedPort.h>
-#include <yarp/os/Bottle.h>
+#include <yarp/os/all.h>
+#include <cstdio>
+#include <cstdlib>
+#include <unistd.h>
+#include <string>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
-using std::placeholders::_1;
-
-class TtsBridge : public rclcpp::Node {
-public:
-  TtsBridge()
-  : Node("tts_bridge")
-  {
-    // YARP ネットワーク初期化
-    if (!yarp::os::Network::checkNetwork(2.0)) {
-      RCLCPP_ERROR(get_logger(), "YARP network is not available");
-      throw std::runtime_error("YARP unreachable");
+int main(int argc, char* argv[]) {
+    // 1) YARP ネットワーク初期化
+    yarp::os::Network yarp;
+    if (!yarp.checkNetwork(3.0)) {
+        std::cerr << "Error: YARP network not available" << std::endl;
+        return 1;
     }
 
-    // YARP ポートを open
-    cmd_port_.open("/vison/sound:o");
-    state_port_.open("/tts_bridge/state:i");
+    // 2) 入力ポートを開く（TTS 用クライアント）
+    yarp::os::BufferedPort<yarp::os::Bottle> port;
+    port.open("/tts_client_cpp");
 
-    // soundGenerator モジュールと接続
-    if (!yarp::os::Network::connect(cmd_port_.getName(),
-                                    "/soundGenerator/command:i")) {
-      RCLCPP_ERROR(get_logger(), "cannot connect to /soundGenerator/command:i");
+    // 3) soundGenerator の入力ポートに接続
+    yarp::os::Network::connect("/tts_client_cpp", "/soundGenerator/command:i");
+
+    std::cout << "Waiting for text on /tts_client_cpp ..." << std::endl;
+
+    while (true) {
+        // 4) 文字列を受信（ブロッキング）
+        yarp::os::Bottle* in = port.read();
+        if (!in || in->size() == 0) continue;
+        std::string text = in->get(0).asString();
+        if (text.empty()) continue;
+
+        // 5) 一時 WAV ファイル名を作成
+        char tmpname[] = "/tmp/ttsXXXXXX.wav";
+        int fd = mkstemps(tmpname, 4);
+        if (fd < 0) {
+            perror("mkstemps");
+            continue;
+        }
+        close(fd);
+        std::string wav_path(tmpname);
+
+        // 6) pico2wave でテキストを WAV 化
+        std::string cmd = "pico2wave -w " + wav_path + " \"" + text + "\"";
+        int ret = std::system(cmd.c_str());
+        if (ret != 0) {
+            std::cerr << "Error: pico2wave failed (code=" << ret << ")" << std::endl;
+            std::remove(wav_path.c_str());
+            continue;
+        }
+
+        // 7) soundGenerator にファイル名を送信して再生
+        yarp::os::Bottle& out = port.prepare();
+        out.clear();
+        out.addString(wav_path);
+        port.write();
+
+        // 8) 再生後に一時ファイルを削除（少し待ってから）
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::remove(wav_path.c_str());
     }
-    if (!yarp::os::Network::connect("/soundGenerator/state:o",
-                                    state_port_.getName())) {
-      RCLCPP_ERROR(get_logger(), "cannot connect from /soundGenerator/state:o");
-    }
 
-    // ROS2 トピック購読
-    sub_ = this->create_subscription<std_msgs::msg::String>(
-      "tts_text", 10,
-      std::bind(&TtsBridge::on_tts_request, this, _1));
-    RCLCPP_INFO(get_logger(), "TTS bridge ready. Subscribe: 'tts_text'");
-  }
-
-private:
-  void on_tts_request(const std_msgs::msg::String::SharedPtr msg) {
-    auto &out = cmd_port_.prepare();
-    out.clear();
-    out.addString("#");            // 制御マーカー
-    out.addString("generate");     // generate コマンド
-    out.addString(msg->data);      // 受信文字列
-    cmd_port_.write();
-    RCLCPP_INFO(get_logger(), "Sent to soundGenerator: \"%s\"",
-                msg->data.c_str());
-
-    // Optional: 再生完了まで待機してログ出力
-    yarp::os::Bottle *reply = state_port_.read();
-    if (reply) {
-      RCLCPP_INFO(get_logger(), "soundGenerator state: %s",
-                  reply->toString().c_str());
-    }
-  }
-
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr sub_;
-  yarp::os::BufferedPort<yarp::os::Bottle> cmd_port_;
-  yarp::os::BufferedPort<yarp::os::Bottle> state_port_;
-};
-
-int main(int argc, char * argv[])
-{
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<TtsBridge>();
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
+    return 0;
 }
